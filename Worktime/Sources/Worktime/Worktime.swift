@@ -142,7 +142,7 @@ struct FloatingView: View {
             Button { tracker.enabled.toggle() } label: {
                 Circle().fill(tracker.enabled ? (tracker.isIdle ? Color.orange : Color.green) : Color.gray).frame(width: 8, height: 8).frame(width: 24, height: 24)
             }.buttonStyle(.plain).help(tracker.enabled ? "Stop tracking" : "Start tracking")
-            Text(duration(tracker.today)).font(.system(size: 12, weight: .medium, design: .monospacedDigit)).contentTransition(.numericText())
+            Text(duration(tracker.today)).font(.system(size: 12, weight: .medium)).monospacedDigit().contentTransition(.numericText())
         }
         .padding(.leading, 4).padding(.trailing, 13).padding(.vertical, 5)
         .background(.regularMaterial, in: Capsule())
@@ -167,7 +167,7 @@ struct ReportView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack { Text("Worktime").font(.title2.bold()); Spacer(); DatePicker("Date", selection: $selectedDate, displayedComponents: .date).labelsHidden() }
-            Text(duration(tracker.store.total(on: selectedDate))).font(.system(size: 32, weight: .semibold, design: .monospacedDigit))
+            Text(duration(tracker.store.total(on: selectedDate))).font(.system(size: 32, weight: .semibold)).monospacedDigit()
             Text("Active time · applications").foregroundStyle(.secondary)
             let apps = tracker.store.apps(on: selectedDate)
             if apps.isEmpty { ContentUnavailableView("No activity yet", systemImage: "clock") }
