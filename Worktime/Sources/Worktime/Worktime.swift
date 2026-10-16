@@ -167,38 +167,90 @@ final class FloatingPanel: NSPanel {
 struct ReportView: View {
     @ObservedObject var tracker: Tracker
     @State private var selectedDate = Date()
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack { Text("Worktime").font(.title2.bold()); Spacer(); DatePicker("Date", selection: $selectedDate, displayedComponents: .date).labelsHidden() }
-            Text(duration(tracker.store.total(on: selectedDate))).font(.system(size: 32, weight: .semibold)).monospacedDigit()
-            Text("Active time · applications").foregroundStyle(.secondary)
-            let apps = tracker.store.apps(on: selectedDate)
-            if apps.isEmpty { ContentUnavailableView("No activity yet", systemImage: "clock") }
-            ForEach(apps, id: \.0) { item in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack { Text(item.0); Spacer(); Text(duration(item.1)).monospacedDigit().foregroundStyle(.secondary) }
-                    GeometryReader { geo in Capsule().fill(Color.accentColor.opacity(0.7)).frame(width: max(2, geo.size.width * item.1 / max(1, apps.first?.1 ?? 1)), height: 6) }.frame(height: 6)
-                }
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Worktime").font(.title2.bold())
+                Spacer()
+                DatePicker("Date", selection: $selectedDate, displayedComponents: .date)
+                    .labelsHidden()
             }
+            .frame(maxWidth: .infinity)
+
+            Text(duration(tracker.store.total(on: selectedDate)))
+                .font(.system(size: 32, weight: .semibold))
+                .monospacedDigit()
+            Text("Active time · applications").foregroundStyle(.secondary)
+
+            Divider()
+            Text("Applications").font(.headline)
+            ScrollView {
+                let apps = tracker.store.apps(on: selectedDate)
+                LazyVStack(alignment: .leading, spacing: 12) {
+                    if apps.isEmpty {
+                        Text("No activity yet").foregroundStyle(.secondary)
+                    }
+                    ForEach(apps, id: \.0) { item in
+                        VStack(alignment: .leading, spacing: 5) {
+                            HStack {
+                                Text(item.0)
+                                Spacer()
+                                Text(duration(item.1))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                            }
+                            GeometryReader { geo in
+                                Capsule()
+                                    .fill(Color.accentColor.opacity(0.7))
+                                    .frame(width: max(2, geo.size.width * item.1 / max(1, apps.first?.1 ?? 1)), height: 6)
+                            }
+                            .frame(height: 6)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .layoutPriority(-1)
+
             Divider()
             Text("Windows").font(.headline)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 9) {
                     ForEach(tracker.store.windows(on: selectedDate), id: \.0) { item in
-                        HStack { Text(item.0).lineLimit(1); Spacer(); Text(duration(item.1)).monospacedDigit().foregroundStyle(.secondary) }
+                        HStack {
+                            Text(item.0).lineLimit(1)
+                            Spacer()
+                            Text(duration(item.1))
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
+                .padding(.vertical, 4)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .layoutPriority(-1)
+
+            Divider()
             HStack {
                 Button("Export CSV") {
                     guard let url = tracker.store.exportCSV() else { return }
-                    let panel = NSSavePanel(); panel.nameFieldStringValue = "worktime.csv"; panel.allowedContentTypes = [.commaSeparatedText]
-                    if panel.runModal() == .OK, let target = panel.url { try? FileManager.default.removeItem(at: target); try? FileManager.default.copyItem(at: url, to: target) }
+                    let panel = NSSavePanel()
+                    panel.nameFieldStringValue = "worktime.csv"
+                    panel.allowedContentTypes = [.commaSeparatedText]
+                    if panel.runModal() == .OK, let target = panel.url {
+                        try? FileManager.default.removeItem(at: target)
+                        try? FileManager.default.copyItem(at: url, to: target)
+                    }
                 }
                 Spacer()
                 Text("Stored locally").font(.caption).foregroundStyle(.secondary)
             }
-        }.padding(22).frame(minWidth: 520, minHeight: 470)
+        }
+        .padding(22)
+        .frame(minWidth: 520, minHeight: 470)
     }
 }
 
