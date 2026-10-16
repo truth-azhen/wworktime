@@ -137,12 +137,15 @@ func duration(_ seconds: TimeInterval) -> String {
 
 struct FloatingView: View {
     @ObservedObject var tracker: Tracker
+    var openReport: () -> Void
     var body: some View {
         HStack(spacing: 8) {
             Button { tracker.enabled.toggle() } label: {
                 Circle().fill(tracker.enabled ? (tracker.isIdle ? Color.orange : Color.green) : Color.gray).frame(width: 8, height: 8).frame(width: 24, height: 24)
             }.buttonStyle(.plain).help(tracker.enabled ? "Stop tracking" : "Start tracking")
-            Text(duration(tracker.today)).font(.system(size: 12, weight: .medium)).monospacedDigit().contentTransition(.numericText())
+            Button(action: openReport) {
+                Text(duration(tracker.today)).font(.system(size: 12, weight: .medium)).monospacedDigit().contentTransition(.numericText())
+            }.buttonStyle(.plain).help("Open activity report")
         }
         .padding(.leading, 4).padding(.trailing, 13).padding(.vertical, 5)
         .background(.regularMaterial, in: Capsule())
@@ -151,12 +154,12 @@ struct FloatingView: View {
 }
 
 final class FloatingPanel: NSPanel {
-    init(tracker: Tracker) {
+    init(tracker: Tracker, openReport: @escaping () -> Void) {
         super.init(contentRect: NSRect(x: 220, y: 650, width: 145, height: 36), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         isFloatingPanel = true; level = .floating; collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         isOpaque = false; backgroundColor = .clear; hasShadow = true
         isMovableByWindowBackground = true; hidesOnDeactivate = false
-        contentView = NSHostingView(rootView: FloatingView(tracker: tracker).padding(2))
+        contentView = NSHostingView(rootView: FloatingView(tracker: tracker, openReport: openReport).padding(2))
     }
     override var canBecomeKey: Bool { true }
 }
@@ -221,6 +224,7 @@ struct MenuContent: View {
     @StateObject private var tracker = Tracker()
     @State private var panel: FloatingPanel?
     @State private var showFloat = true
+    @State private var reportWindow: NSWindow?
     var body: some Scene {
         MenuBarExtra {
             MenuContent(tracker: tracker, showFloat: $showFloat, toggleFloating: toggleFloating)
@@ -243,9 +247,25 @@ struct MenuContent: View {
         ensurePanel()
         if showFloat { panel?.orderFront(nil) } else { panel?.orderOut(nil) }
     }
+    private func showReport() {
+        if reportWindow == nil {
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 600, height: 550),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable],
+                backing: .buffered, defer: false
+            )
+            window.title = "Activity Report"
+            window.center()
+            window.isReleasedWhenClosed = false
+            window.contentView = NSHostingView(rootView: ReportView(tracker: tracker))
+            reportWindow = window
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        reportWindow?.makeKeyAndOrderFront(nil)
+    }
     private func ensurePanel() {
         guard panel == nil else { return }
-        let p = FloatingPanel(tracker: tracker)
+        let p = FloatingPanel(tracker: tracker, openReport: showReport)
         panel = p
         if showFloat { p.orderFront(nil) }
     }
